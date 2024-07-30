@@ -73,12 +73,6 @@ class Scheduler:
         logger.info("Constraints applied")
 
     def set_objective(self, weights: Dict[str, float]):
-        """
-        Set the objective function for the scheduling problem.
-
-        Args:
-            weights (Dict[str, float]): Weights for each component of the objective function
-        """
         logger.info("Setting objective function")
         log_memory_usage()
         try:
@@ -90,7 +84,7 @@ class Scheduler:
                 self.data["time_slots"],
                 weights
             )
-            logger.info("Combined objective created successfully")
+            logger.info("Objective created successfully")
             log_memory_usage()
 
             try:
@@ -110,15 +104,6 @@ class Scheduler:
         log_memory_usage()
 
     def solve(self, timeout: int = 300) -> bool:
-        """
-        Solve the scheduling problem with a timeout.
-
-        Args:
-            timeout (int): Maximum time in seconds allowed for solving.
-
-        Returns:
-            bool: True if a solution was found, False otherwise
-        """
         logger.info(f"Starting to solve the scheduling problem with a {timeout} second timeout")
 
         start_time = time.time()
