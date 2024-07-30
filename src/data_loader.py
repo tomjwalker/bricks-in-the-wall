@@ -1,4 +1,6 @@
 """
+`data_loader.py`:
+
 This module provides functions to load data from CSV files into suitable data structures
 for the school scheduling problem.
 """
@@ -54,7 +56,7 @@ def load_teachers(file: Union[str, BytesIO, TextIOWrapper]) -> List[Dict[str, An
                     "Name": row["Name"],
                     "Subjects": row["Subjects"].split(","),
                     "FullTime": row["FullTime"].lower() == "true",
-                    "Availability": parse_availability(row["Availability"])
+                    "Availability": parse_availability(row["Availability"], num_days=5, num_periods=8)
                 }
                 teachers.append(teacher)
         logger.debug(f"Successfully loaded {len(teachers)} teachers")
@@ -152,24 +154,39 @@ def load_time_slots(file: Union[str, BytesIO, TextIOWrapper]) -> List[tuple]:
     return time_slots
 
 
-def parse_availability(availability_str: str) -> List[List[bool]]:
+def parse_availability(availability_str: str, num_days: int = 5, num_periods: int = 8) -> List[List[bool]]:
     """
     Parse the availability string into a 2D list of booleans.
 
     Args:
         availability_str (str): String representation of availability.
+        num_days (int): Number of days in the schedule.
+        num_periods (int): Number of periods per day.
 
     Returns:
         List[List[bool]]: 2D list representing availability for each day and period.
     """
     logger.debug(f"Parsing availability string: {availability_str}")
     try:
-        availability = [[slot == "1" for slot in day.split(",")] for day in availability_str.split(";")]
+        days = availability_str.split(";")
+        availability = []
+        for day in days:
+            periods = day.split(",")
+            day_availability = [slot == "1" for slot in periods]
+            # Ensure each day has the correct number of periods
+            day_availability += [False] * (num_periods - len(day_availability))
+            availability.append(day_availability)
+
+        # Ensure the correct number of days
+        while len(availability) < num_days:
+            availability.append([False] * num_periods)
+
         logger.debug(f"Parsed availability: {availability}")
         return availability
     except Exception as e:
         logger.error(f"Error parsing availability: {str(e)}")
-        raise
+        # Return a default availability (all False) if parsing fails
+        return [[False for _ in range(num_periods)] for _ in range(num_days)]
 
 
 def validate_data(teachers: List[Dict[str, Any]], classes: List[Dict[str, Any]],

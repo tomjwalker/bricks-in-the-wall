@@ -1,4 +1,6 @@
 """
+`utils.py`:
+
 This module contains utility functions for the school scheduling project.
 These functions provide support for data preprocessing, result visualization,
 and other helper tasks.
@@ -10,6 +12,11 @@ import csv
 import matplotlib
 import matplotlib.pyplot as plt
 from collections import defaultdict
+
+import psutil
+
+from log_config import logger
+
 matplotlib.use('TkAgg')
 
 
@@ -147,3 +154,9 @@ if __name__ == "__main__":
     sample_time_slots = [(0, 1), (0, 2), (1, 1), (1, 2), (2, 1), (2, 2)]
     processed_slots = preprocess_time_slots(sample_time_slots)
     print("Processed Time Slots:", processed_slots)
+
+
+def log_memory_usage():
+    process = psutil.Process(os.getpid())
+    mem_info = process.memory_info()
+    logger.info(f"Memory usage: {mem_info.rss / 1024 / 1024:.2f} MB")
