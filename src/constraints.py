@@ -1,17 +1,20 @@
 """
+`constraints.py`:
+
 This module contains functions to implement constraints for the school scheduling problem.
 """
 
 from ortools.linear_solver import pywraplp
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Tuple
 
 
 def room_capacity_constraint(
     solver: pywraplp.Solver,
-    x: Dict[tuple, pywraplp.Variable],
+    x: Dict[Tuple[str, str, str, Tuple[int, int]], pywraplp.Variable],
     classes: List[Dict[str, Any]],
     rooms: List[Dict[str, Any]],
-    time_slots: List[tuple]
+    time_slots: List[Tuple[int, int]],
+    teachers: List[Dict[str, Any]]  # Add teachers as a parameter
 ) -> List[pywraplp.Constraint]:
     """
     Ensure that room capacity is not exceeded for any time slot.
@@ -22,6 +25,7 @@ def room_capacity_constraint(
         classes: List of class dictionaries
         rooms: List of room dictionaries
         time_slots: List of time slot tuples
+        teachers: List of teacher dictionaries
 
     Returns:
         List of room capacity constraints
@@ -29,23 +33,21 @@ def room_capacity_constraint(
     constraints = []
     for r in rooms:
         for ts in time_slots:
-            # For each room and time slot, create a constraint
             constraint = solver.Constraint(0, r["Capacity"])
             for c in classes:
-                for t in c["Teachers"]:
-                    # Sum up the number of students in each class assigned to this room
-                    constraint.SetCoefficient(x[t["ID"], c["ID"], r["ID"], ts], c["NumStudents"])
+                for t in teachers:  # Iterate over all teachers
+                    constraint.SetCoefficient(x.get((t["ID"], c["ID"], r["ID"], ts), 0), c["NumStudents"])
             constraints.append(constraint)
     return constraints
 
 
 def teacher_availability_constraint(
-    solver: pywraplp.Solver,
-    x: Dict[tuple, pywraplp.Variable],
-    teachers: List[Dict[str, Any]],
-    classes: List[Dict[str, Any]],
-    rooms: List[Dict[str, Any]],
-    time_slots: List[tuple]
+        solver: pywraplp.Solver,
+        x: Dict[Tuple[str, str, str, Tuple[int, int]], pywraplp.Variable],
+        teachers: List[Dict[str, Any]],
+        classes: List[Dict[str, Any]],
+        rooms: List[Dict[str, Any]],
+        time_slots: List[Tuple[int, int]]
 ) -> List[pywraplp.Constraint]:
     """
     Ensure that teachers are only scheduled when they are available.
@@ -64,12 +66,16 @@ def teacher_availability_constraint(
     constraints = []
     for t in teachers:
         for ts in time_slots:
-            if not t["Availability"][ts[0]][ts[1]]:  # If teacher is not available
-                # Create a constraint that sums to 0 (i.e., teacher is not assigned)
+            day, period = ts
+            if day >= len(t["Availability"]) or period >= len(t["Availability"][day]):
+                print(f"Warning: Availability data missing for teacher {t['ID']} at time slot {ts}")
+                continue
+
+            if not t["Availability"][day][period]:  # If teacher is not available
                 constraint = solver.Constraint(0, 0)
                 for c in classes:
                     for r in rooms:
-                        constraint.SetCoefficient(x[t["ID"], c["ID"], r["ID"], ts], 1)
+                        constraint.SetCoefficient(x.get((t["ID"], c["ID"], r["ID"], ts), 0), 1)
                 constraints.append(constraint)
     return constraints
 
@@ -144,11 +150,11 @@ def required_periods_per_class(
 
 def apply_all_constraints(
     solver: pywraplp.Solver,
-    x: Dict[tuple, pywraplp.Variable],
+    x: Dict[Tuple[str, str, str, Tuple[int, int]], pywraplp.Variable],
     teachers: List[Dict[str, Any]],
     classes: List[Dict[str, Any]],
     rooms: List[Dict[str, Any]],
-    time_slots: List[tuple]
+    time_slots: List[Tuple[int, int]]
 ) -> List[pywraplp.Constraint]:
     """
     Apply all defined constraints to the solver.
@@ -165,8 +171,7 @@ def apply_all_constraints(
         List of all applied constraints
     """
     all_constraints = []
-    # Apply each type of constraint
-    all_constraints.extend(room_capacity_constraint(solver, x, classes, rooms, time_slots))
+    all_constraints.extend(room_capacity_constraint(solver, x, classes, rooms, time_slots, teachers))
     all_constraints.extend(teacher_availability_constraint(solver, x, teachers, classes, rooms, time_slots))
     all_constraints.extend(one_class_per_teacher_per_period(solver, x, teachers, classes, rooms, time_slots))
     all_constraints.extend(required_periods_per_class(solver, x, classes, teachers, rooms, time_slots))

@@ -1,3 +1,9 @@
+"""
+`generate_dummy_data.py`:
+
+A script to generate dummy data for school scheduling.
+"""
+
 from enum import Enum
 import random
 import csv
@@ -25,39 +31,56 @@ class RoomType(Enum):
     GYM = "Gym"
 
 
+# Dataset size configuration
+SMALL_DATASET = {
+    "teachers": 10,
+    "classes": 20,
+    "rooms": 5
+}
+
+FULL_DATASET = {
+    "teachers": 75,
+    "classes": 150,
+    "rooms": 30
+}
+
+# Set this to True for small dataset, False for full dataset
+USE_SMALL_DATASET = True
+
+
+def get_dataset_size():
+    return SMALL_DATASET if USE_SMALL_DATASET else FULL_DATASET
+
+
 def generate_teachers(num_teachers: int) -> List[Dict]:
-    """
-    Generate a list of teacher dictionaries.
-
-    Args:
-        num_teachers (int): The number of teachers to generate.
-
-    Returns:
-        List[Dict]: A list of dictionaries containing teacher information.
-    """
+    """Generate a list of teacher dictionaries."""
     teachers = []
     for i in range(num_teachers):
+        availability = []
+        for _ in range(5):  # 5 days
+            day_availability = []
+            available_hours = random.randint(3, 5)
+            for _ in range(8):  # 8 periods
+                if available_hours > 0 and random.random() > 0.3:
+                    day_availability.append('1')
+                    available_hours -= 1
+                else:
+                    day_availability.append('0')
+            availability.append(','.join(day_availability))
+
         teacher = {
-            "ID": f"T{i+1:03d}",
-            "Name": f"Teacher {i+1}",
+            "ID": f"T{i + 1:03d}",
+            "Name": f"Teacher {i + 1}",
             "Subjects": random.sample(list(Subject), random.randint(1, 3)),
             "FullTime": random.choice([True, False]),
-            "Availability": [random.randint(3, 5) for _ in range(5)]  # Hours available each day
+            "Availability": ';'.join(availability)
         }
         teachers.append(teacher)
     return teachers
 
 
 def generate_classes(num_classes: int) -> List[Dict]:
-    """
-    Generate a list of class dictionaries.
-
-    Args:
-        num_classes (int): The number of classes to generate.
-
-    Returns:
-        List[Dict]: A list of dictionaries containing class information.
-    """
+    """Generate a list of class dictionaries."""
     classes = []
     for i in range(num_classes):
         class_ = {
@@ -72,15 +95,7 @@ def generate_classes(num_classes: int) -> List[Dict]:
 
 
 def generate_rooms(num_rooms: int) -> List[Dict]:
-    """
-    Generate a list of room dictionaries.
-
-    Args:
-        num_rooms (int): The number of rooms to generate.
-
-    Returns:
-        List[Dict]: A list of dictionaries containing room information.
-    """
+    """Generate a list of room dictionaries."""
     rooms = []
     for i in range(num_rooms):
         room = {
@@ -93,41 +108,40 @@ def generate_rooms(num_rooms: int) -> List[Dict]:
 
 
 def generate_time_slots() -> List[Tuple[int, int]]:
-    """
-    Generate a list of time slots for a school week.
-
-    Returns:
-        List[Tuple[int, int]]: A list of tuples representing (day, period) for each time slot.
-    """
+    """Generate a list of time slots for a school week."""
     return [(day, period) for day in range(5) for period in range(8)]
 
 
 def save_to_csv(data: List[Dict], filename: str):
-    """
-    Save a list of dictionaries to a CSV file in the data folder.
-
-    Args:
-        data (List[Dict]): The data to be saved.
-        filename (str): The name of the file to save the data to.
-    """
+    """Save a list of dictionaries to a CSV file in the data folder."""
     if not data:
         return
+
     keys = data[0].keys()
-    os.makedirs('../data', exist_ok=True)  # Ensure the data folder exists
-    filepath = os.path.join('../data', filename)
-    with open(filepath, 'w', newline='') as output_file:
-        dict_writer = csv.DictWriter(output_file, keys)
-        dict_writer.writeheader()
-        dict_writer.writerows(data)
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    data_dir = os.path.join(os.path.dirname(current_dir), 'data')
+    os.makedirs(data_dir, exist_ok=True)
+    filepath = os.path.join(data_dir, filename)
+
+    try:
+        with open(filepath, 'w', newline='') as output_file:
+            dict_writer = csv.DictWriter(output_file, keys)
+            dict_writer.writeheader()
+            dict_writer.writerows(data)
+        print(f"Successfully saved {filename} to {filepath}")
+    except PermissionError:
+        print(f"Permission denied: Unable to write to {filepath}")
+        print("Please check if you have write permissions for this location.")
+    except Exception as e:
+        print(f"An error occurred while saving {filename}: {str(e)}")
 
 
 def main():
-    """
-    Main function to generate and save dummy data for school scheduling.
-    """
-    teachers = generate_teachers(75)
-    classes = generate_classes(150)
-    rooms = generate_rooms(30)
+    """Main function to generate and save dummy data for school scheduling."""
+    dataset_size = get_dataset_size()
+    teachers = generate_teachers(dataset_size["teachers"])
+    classes = generate_classes(dataset_size["classes"])
+    rooms = generate_rooms(dataset_size["rooms"])
     time_slots = generate_time_slots()
 
     # Convert Enum values to strings before saving
@@ -143,7 +157,9 @@ def main():
     save_to_csv(rooms, 'rooms.csv')
     save_to_csv([{"Day": day, "Period": period} for day, period in time_slots], 'time_slots.csv')
 
-    print("Dummy data generated and saved to CSV files in the 'data' folder.")
+    print(f"Dummy data generated and saved to CSV files in the 'data' folder.")
+    print(f"Dataset size: {'Small' if USE_SMALL_DATASET else 'Full'}")
+    print(f"Teachers: {len(teachers)}, Classes: {len(classes)}, Rooms: {len(rooms)}")
 
 
 if __name__ == "__main__":
