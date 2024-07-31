@@ -55,6 +55,22 @@ def export_schedule_to_csv(schedule: Dict[int, List[Dict[str, Any]]], filename: 
                 })
     print(f"Schedule exported to {filepath}")
 
+def calculate_teacher_workload(schedule: Dict[int, List[Dict[str, Any]]]) -> Dict[str, int]:
+    """
+    Calculate the workload for each teacher based on the schedule.
+
+    Args:
+        schedule (Dict[int, List[Dict[str, Any]]]): The generated schedule
+
+    Returns:
+        Dict[str, int]: Dictionary of teacher workloads
+    """
+    teacher_workload = defaultdict(int)
+    for day_schedule in schedule.values():
+        for class_ in day_schedule:
+            teacher_workload[class_['teacher']] += 1
+    return dict(teacher_workload)
+
 def visualize_teacher_workload(schedule: Dict[int, List[Dict[str, Any]]]) -> plt.Figure:
     """
     Create a bar chart visualizing the workload distribution among teachers.
@@ -65,11 +81,7 @@ def visualize_teacher_workload(schedule: Dict[int, List[Dict[str, Any]]]) -> plt
     Returns:
         plt.Figure: The matplotlib figure object
     """
-    teacher_workload = defaultdict(int)
-    for day_schedule in schedule.values():
-        for class_ in day_schedule:
-            teacher_workload[class_['teacher']] += 1
-
+    teacher_workload = calculate_teacher_workload(schedule)
     teachers = list(teacher_workload.keys())
     workloads = list(teacher_workload.values())
 
