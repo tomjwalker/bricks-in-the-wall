@@ -9,16 +9,15 @@ and other helper tasks.
 import os
 from typing import Dict, List, Any, Tuple
 import csv
-import matplotlib
 import matplotlib.pyplot as plt
+import matplotlib
 import numpy as np
 from collections import defaultdict
-
 import psutil
 
-from log_config import logger
+matplotlib.use('Agg')
 
-matplotlib.use('TkAgg')
+from log_config import logger
 
 # Configuration
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data')
@@ -56,12 +55,15 @@ def export_schedule_to_csv(schedule: Dict[int, List[Dict[str, Any]]], filename: 
                 })
     print(f"Schedule exported to {filepath}")
 
-def visualize_teacher_workload(schedule: Dict[int, List[Dict[str, Any]]]) -> None:
+def visualize_teacher_workload(schedule: Dict[int, List[Dict[str, Any]]]) -> plt.Figure:
     """
     Create a bar chart visualizing the workload distribution among teachers.
 
     Args:
         schedule (Dict[int, List[Dict[str, Any]]]): The generated schedule
+
+    Returns:
+        plt.Figure: The matplotlib figure object
     """
     teacher_workload = defaultdict(int)
     for day_schedule in schedule.values():
@@ -71,19 +73,14 @@ def visualize_teacher_workload(schedule: Dict[int, List[Dict[str, Any]]]) -> Non
     teachers = list(teacher_workload.keys())
     workloads = list(teacher_workload.values())
 
-    plt.figure(figsize=(12, 6))
-    plt.bar(teachers, workloads)
-    plt.title('Teacher Workload Distribution')
-    plt.xlabel('Teachers')
-    plt.ylabel('Number of Classes')
+    fig, ax = plt.subplots(figsize=(12, 6))
+    ax.bar(teachers, workloads)
+    ax.set_title('Teacher Workload Distribution')
+    ax.set_xlabel('Teachers')
+    ax.set_ylabel('Number of Classes')
     plt.xticks(rotation=45, ha='right')
     plt.tight_layout()
-
-    ensure_dir_exists(OUTPUT_DIR)
-    output_path = os.path.join(OUTPUT_DIR, 'teacher_workload.png')
-    plt.savefig(output_path)
-    print(f"Teacher workload visualization saved to {output_path}")
-    plt.close()
+    return fig
 
 def calculate_schedule_statistics(schedule: Dict[int, List[Dict[str, Any]]]) -> Dict[str, Any]:
     """
@@ -155,23 +152,24 @@ def calculate_teacher_utilization(schedule: Dict[int, List[Dict[str, Any]]], tea
         utilization[teacher['Name']] = (scheduled_periods / total_available_periods) * 100 if total_available_periods else 0
     return utilization
 
-def plot_teacher_utilization(utilization: Dict[str, float]) -> None:
+def plot_teacher_utilization(utilization: Dict[str, float]) -> plt.Figure:
     """
     Create a bar chart of teacher utilization.
 
     Args:
         utilization (Dict[str, float]): Dictionary of teacher utilization percentages
+
+    Returns:
+        plt.Figure: The matplotlib figure object
     """
-    plt.figure(figsize=(12, 6))
-    plt.bar(utilization.keys(), utilization.values())
-    plt.title('Teacher Utilization')
-    plt.xlabel('Teachers')
-    plt.ylabel('Utilization (%)')
+    fig, ax = plt.subplots(figsize=(12, 6))
+    ax.bar(utilization.keys(), utilization.values())
+    ax.set_title('Teacher Utilization')
+    ax.set_xlabel('Teachers')
+    ax.set_ylabel('Utilization (%)')
     plt.xticks(rotation=45, ha='right')
     plt.tight_layout()
-    ensure_dir_exists(OUTPUT_DIR)
-    plt.savefig(os.path.join(OUTPUT_DIR, 'teacher_utilization.png'))
-    plt.close()
+    return fig
 
 def analyze_class_distribution(schedule: Dict[int, List[Dict[str, Any]]], teachers: List[Dict[str, Any]]) -> Dict[str, List[int]]:
     """
@@ -190,12 +188,15 @@ def analyze_class_distribution(schedule: Dict[int, List[Dict[str, Any]]], teache
             distribution[class_['teacher']][day] += 1
     return distribution
 
-def plot_class_distribution(distribution: Dict[str, List[int]]) -> None:
+def plot_class_distribution(distribution: Dict[str, List[int]]) -> plt.Figure:
     """
     Create a stacked bar chart of class distribution across the week for each teacher.
 
     Args:
         distribution (Dict[str, List[int]]): Dictionary of class distribution for each teacher
+
+    Returns:
+        plt.Figure: The matplotlib figure object
     """
     fig, ax = plt.subplots(figsize=(12, 6))
     bottom = np.zeros(len(distribution))
@@ -209,9 +210,7 @@ def plot_class_distribution(distribution: Dict[str, List[int]]) -> None:
     ax.set_ylabel('Number of Classes')
     plt.xticks(rotation=45, ha='right')
     plt.tight_layout()
-    ensure_dir_exists(OUTPUT_DIR)
-    plt.savefig(os.path.join(OUTPUT_DIR, 'class_distribution.png'))
-    plt.close()
+    return fig
 
 def analyze_gaps(schedule: Dict[int, List[Dict[str, Any]]], teachers: List[Dict[str, Any]]) -> Dict[str, int]:
     """
@@ -233,23 +232,24 @@ def analyze_gaps(schedule: Dict[int, List[Dict[str, Any]]], teachers: List[Dict[
             gaps[teacher] += sum(1 for i in range(1, 7) if periods[i] == 0 and periods[i-1] == 1 and periods[i+1] == 1)
     return gaps
 
-def plot_teacher_gaps(teacher_gaps: Dict[str, int]) -> None:
+def plot_teacher_gaps(teacher_gaps: Dict[str, int]) -> plt.Figure:
     """
     Create a bar chart of gaps in teacher schedules.
 
     Args:
         teacher_gaps (Dict[str, int]): Dictionary of gap counts for each teacher
+
+    Returns:
+        plt.Figure: The matplotlib figure object
     """
-    plt.figure(figsize=(12, 6))
-    plt.bar(teacher_gaps.keys(), teacher_gaps.values())
-    plt.title('Number of Gaps in Teacher Schedules')
-    plt.xlabel('Teachers')
-    plt.ylabel('Number of Gaps')
+    fig, ax = plt.subplots(figsize=(12, 6))
+    ax.bar(teacher_gaps.keys(), teacher_gaps.values())
+    ax.set_title('Number of Gaps in Teacher Schedules')
+    ax.set_xlabel('Teachers')
+    ax.set_ylabel('Number of Gaps')
     plt.xticks(rotation=45, ha='right')
     plt.tight_layout()
-    ensure_dir_exists(OUTPUT_DIR)
-    plt.savefig(os.path.join(OUTPUT_DIR, 'teacher_gaps.png'))
-    plt.close()
+    return fig
 
 def calculate_room_utilization(schedule: Dict[int, List[Dict[str, Any]]], rooms: List[Dict[str, Any]], time_slots: List[Tuple[int, int]]) -> Dict[str, float]:
     """
@@ -270,23 +270,24 @@ def calculate_room_utilization(schedule: Dict[int, List[Dict[str, Any]]], rooms:
             utilization[class_['room']] += 1
     return {room: (count / total_periods) * 100 for room, count in utilization.items()}
 
-def plot_room_utilization(room_utilization: Dict[str, float]) -> None:
+def plot_room_utilization(room_utilization: Dict[str, float]) -> plt.Figure:
     """
     Create a bar chart of room utilization.
 
     Args:
         room_utilization (Dict[str, float]): Dictionary of room utilization percentages
+
+    Returns:
+        plt.Figure: The matplotlib figure object
     """
-    plt.figure(figsize=(12, 6))
-    plt.bar(room_utilization.keys(), room_utilization.values())
-    plt.title('Room Utilization')
-    plt.xlabel('Rooms')
-    plt.ylabel('Utilization (%)')
+    fig, ax = plt.subplots(figsize=(12, 6))
+    ax.bar(room_utilization.keys(), room_utilization.values())
+    ax.set_title('Room Utilization')
+    ax.set_xlabel('Rooms')
+    ax.set_ylabel('Utilization (%)')
     plt.xticks(rotation=45, ha='right')
     plt.tight_layout()
-    ensure_dir_exists(OUTPUT_DIR)
-    plt.savefig(os.path.join(OUTPUT_DIR, 'room_utilization.png'))
-    plt.close()
+    return fig
 
 def analyze_subject_balance(schedule: Dict[int, List[Dict[str, Any]]], classes: List[Dict[str, Any]]) -> Dict[str, int]:
     """
@@ -305,23 +306,24 @@ def analyze_subject_balance(schedule: Dict[int, List[Dict[str, Any]]], classes: 
             subject_count[class_['class']] += 1
     return subject_count
 
-def plot_subject_balance(subject_balance: Dict[str, int]) -> None:
+def plot_subject_balance(subject_balance: Dict[str, int]) -> plt.Figure:
     """
     Create a bar chart of subject distribution.
 
     Args:
         subject_balance (Dict[str, int]): Dictionary of subject counts
+
+    Returns:
+        plt.Figure: The matplotlib figure object
     """
-    plt.figure(figsize=(12, 6))
-    plt.bar(subject_balance.keys(), subject_balance.values())
-    plt.title('Distribution of Subjects')
-    plt.xlabel('Subjects')
-    plt.ylabel('Number of Classes')
+    fig, ax = plt.subplots(figsize=(12, 6))
+    ax.bar(subject_balance.keys(), subject_balance.values())
+    ax.set_title('Distribution of Subjects')
+    ax.set_xlabel('Subjects')
+    ax.set_ylabel('Number of Classes')
     plt.xticks(rotation=45, ha='right')
     plt.tight_layout()
-    ensure_dir_exists(OUTPUT_DIR)
-    plt.savefig(os.path.join(OUTPUT_DIR, 'subject_balance.png'))
-    plt.close()
+    return fig
 
 if __name__ == "__main__":
     # Example usage of the utility functions
