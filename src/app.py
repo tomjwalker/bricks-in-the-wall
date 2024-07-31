@@ -77,11 +77,12 @@ def main():
             logger.info("Initializing scheduler")
             scheduler = Scheduler(data_files)
 
-            # Objective weights
-            st.header("Objective Weights")
-            weights = {
-                "gaps": st.slider("Weight for minimizing gaps", 0.0, 1.0, 1.0),
-            }
+            # Solver settings (hidden by default)
+            with st.expander("Solver Settings", expanded=False):
+                st.header("Objective Weights")
+                weights = {
+                    "gaps": st.slider("Weight for minimizing gaps", 0.0, 1.0, 1.0),
+                }
 
             if st.button("Generate Schedule"):
                 with st.spinner("Generating schedule..."):
@@ -110,43 +111,38 @@ def main():
 
                             # Visualize teacher workload
                             st.header("Teacher Workload")
-                            fig = utils.visualize_teacher_workload(schedule)
-                            st.pyplot(fig)
+                            teacher_workload = utils.calculate_teacher_workload(schedule)
+                            st.bar_chart(teacher_workload)
 
                             # Display statistics
                             st.header("Schedule Statistics")
                             stats = utils.calculate_schedule_statistics(schedule)
-                            st.json(stats)
+                            st.dataframe(pd.DataFrame([stats]))
 
                             # Teacher Utilization
                             st.header("Teacher Utilization")
                             teacher_utilization = utils.calculate_teacher_utilization(schedule, scheduler.data["teachers"], scheduler.data["time_slots"])
-                            fig = utils.plot_teacher_utilization(teacher_utilization)
-                            st.pyplot(fig)
+                            st.bar_chart(teacher_utilization)
 
                             # Class Distribution
                             st.header("Class Distribution")
                             class_distribution = utils.analyze_class_distribution(schedule, scheduler.data["teachers"])
-                            fig = utils.plot_class_distribution(class_distribution)
-                            st.pyplot(fig)
+                            st.bar_chart(pd.DataFrame(class_distribution).T)
 
                             # Teacher Gaps
                             st.header("Teacher Gaps")
                             teacher_gaps = utils.analyze_gaps(schedule, scheduler.data["teachers"])
-                            fig = utils.plot_teacher_gaps(teacher_gaps)
-                            st.pyplot(fig)
+                            st.bar_chart(teacher_gaps)
 
                             # Room Utilization
                             st.header("Room Utilization")
                             room_utilization = utils.calculate_room_utilization(schedule, scheduler.data["rooms"], scheduler.data["time_slots"])
-                            fig = utils.plot_room_utilization(room_utilization)
-                            st.pyplot(fig)
+                            st.bar_chart(room_utilization)
 
                             # Subject Balance
                             st.header("Subject Balance")
                             subject_balance = utils.analyze_subject_balance(schedule, scheduler.data["classes"])
-                            fig = utils.plot_subject_balance(subject_balance)
-                            st.pyplot(fig)
+                            st.bar_chart(subject_balance)
 
                             # Export option
                             if st.button("Export Schedule to CSV"):
