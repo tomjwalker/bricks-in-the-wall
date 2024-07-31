@@ -6,6 +6,8 @@ This module contains the Streamlit app for the school scheduling system.
 
 import sys
 import os
+import threading
+import time
 
 # Ensure the 'src' directory is added to the system path
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
@@ -16,46 +18,41 @@ from scheduler import Scheduler
 import utils
 import traceback
 import logging
-import time
-from concurrent.futures import ThreadPoolExecutor, TimeoutError
+from typing import Dict, List, Any
 from log_config import logger
 
+from scheduler_utils import run_scheduler
+
+import psutil
 
 # Set up logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 # Ensure logs from other modules are captured
-logging.getLogger("scheduler").setLevel(logging.INFO)
-logging.getLogger("objectives").setLevel(logging.INFO)
+logging.getLogger("scheduler").setLevel(logging.DEBUG)
+logging.getLogger("objectives").setLevel(logging.DEBUG)
 
+class TimeoutException(Exception):
+    pass
 
-def run_scheduler_with_timeout(scheduler, weights, timeout=300):
-    """Run the scheduler with a timeout."""
-    with ThreadPoolExecutor() as executor:
-        future = executor.submit(run_scheduler, scheduler, weights)
-        try:
-            return future.result(timeout=timeout)
-        except TimeoutError:
-            logger.error("Scheduling process timed out")
-            return None
+def log_memory_usage():
+    process = psutil.Process(os.getpid())
+    mem_info = process.memory_info()
+    logger.info(f"Memory usage: {mem_info.rss / 1024 / 1024:.2f} MB")
 
+def run_with_timeout(func, args, timeout):
+    result = [None]
+    def worker():
+        result[0] = func(*args)
 
-def run_scheduler(scheduler, weights, timeout=300):
-    """Run the scheduling process."""
-    logger.info("Creating variables")
-    scheduler.create_variables()
-    logger.info("Applying constraints")
-    scheduler.apply_constraints()
-    logger.info("Setting objective")
-    scheduler.set_objective(weights)
-    logger.info(f"Solving (timeout: {timeout} seconds)")
-    if scheduler.solve(timeout=timeout):
-        logger.info("Solution found")
-        return scheduler.get_schedule()
-    else:
-        logger.info("No solution found")
-        return None
+    thread = threading.Thread(target=worker)
+    thread.start()
+    thread.join(timeout)
+    if thread.is_alive():
+        raise TimeoutException("Solver timed out")
+    return result[0]
+
 def main():
     st.title("School Scheduling System")
 
@@ -84,17 +81,23 @@ def main():
             # Objective weights
             st.header("Objective Weights")
             weights = {
-                "gaps": st.slider("Weight for minimizing gaps", 0.0, 1.0, 0.5),
-                "workload": st.slider("Weight for balancing workload", 0.0, 1.0, 0.3),
-                "distribution": st.slider("Weight for optimizing class distribution", 0.0, 1.0, 0.2)
+                "gaps": st.slider("Weight for minimizing gaps", 0.0, 1.0, 1.0),
             }
 
             if st.button("Generate Schedule"):
                 with st.spinner("Generating schedule..."):
                     try:
                         start_time = time.time()
-                        schedule = run_scheduler(scheduler, weights, timeout=300)  # 5 minutes timeout
+                        log_memory_usage()
+
+                        try:
+                            schedule = run_with_timeout(run_scheduler, (scheduler, weights, 300), 300)
+                        except TimeoutException:
+                            st.error("The solver timed out. Try simplifying the problem or increasing the timeout.")
+                            return
+
                         end_time = time.time()
+                        log_memory_usage()
 
                         if schedule is not None:
                             st.success(f"Schedule generated successfully in {end_time - start_time:.2f} seconds!")
@@ -122,16 +125,17 @@ def main():
                                 st.success("Schedule exported to output/generated_schedule.csv")
                         else:
                             st.error("Unable to generate a feasible schedule. Please adjust constraints or data.")
-                            st.info(
-                                    "Check the console output for more detailed information about the solving process.")
+                            st.info("Check the console output for more detailed information about the solving process.")
                     except Exception as e:
                         logger.error(f"An error occurred during scheduling: {str(e)}")
                         st.error(f"An error occurred during scheduling: {str(e)}")
                         st.code(traceback.format_exc())
         except Exception as e:
             logger.error(f"An error occurred: {str(e)}")
-            st.error("An error occurred:")
+            logger.error(traceback.format_exc())
+            st.error(f"An error occurred: {str(e)}")
             st.code(traceback.format_exc())
+
 
 if __name__ == "__main__":
     main()
