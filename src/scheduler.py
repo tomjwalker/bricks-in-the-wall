@@ -38,7 +38,7 @@ class Scheduler:
             data_files (Dict[str, Any]): Dictionary containing file paths or file-like objects for each data type
         """
         logger.info("Initializing Scheduler")
-        self.solver = pywraplp.Solver.CreateSolver("SCIP")
+        self.solver = pywraplp.Solver.CreateSolver("CBC")
         self.data = data_loader.load_all_data(**data_files)
         self.x: Dict[Tuple[str, str, str, Tuple[int, int]], pywraplp.Variable] = {}  # Decision variables
         self.solution = None
@@ -111,7 +111,11 @@ class Scheduler:
             self.solver.set_time_limit(timeout * 1000)  # OR-Tools uses milliseconds
 
             logger.info("Calling solver.Solve()")
+            logger.info(f"Number of variables: {self.solver.NumVariables()}")
+            logger.info(f"Number of constraints: {self.solver.NumConstraints()}")
+
             status = self.solver.Solve()
+
             logger.info(f"Solver finished with status: {status}")
 
             end_time = time.time()
