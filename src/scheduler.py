@@ -105,16 +105,18 @@ class Scheduler:
 
     def solve(self, timeout: int = 300) -> bool:
         logger.info(f"Starting to solve the scheduling problem with a {timeout} second timeout")
-
         start_time = time.time()
         try:
             # Set a time limit for the solver
             self.solver.set_time_limit(timeout * 1000)  # OR-Tools uses milliseconds
 
+            logger.info("Calling solver.Solve()")
             status = self.solver.Solve()
+            logger.info(f"Solver finished with status: {status}")
 
             end_time = time.time()
             solve_time = end_time - start_time
+            logger.info(f"Solve process took {solve_time:.2f} seconds")
 
             if status == pywraplp.Solver.OPTIMAL:
                 logger.info(f"Optimal solution found in {solve_time:.2f} seconds")
@@ -138,6 +140,7 @@ class Scheduler:
 
         except Exception as e:
             logger.error(f"An error occurred during solving: {str(e)}")
+            logger.error(traceback.format_exc())
             return False
 
     def get_schedule(self) -> Dict[int, List[Dict[str, Any]]]:

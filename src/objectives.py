@@ -45,18 +45,30 @@ def minimize_teacher_gaps(
             logger.debug(f"Processing teacher {i + 1}/{len(teachers)}: {t['ID']}")
             for d in range(5):  # Assuming 5 days in a week
                 logger.debug(f"Processing day {d + 1} for teacher {t['ID']}")
-                teaching_periods = [
-                    solver.Sum([x.get((t['ID'], c['ID'], r['ID'], (d, p)), 0)
-                                for c in classes for r in rooms])
-                    for p in range(8)  # Assuming 8 periods per day
-                ]
+                teaching_periods = []
+                for p in range(8):  # Assuming 8 periods per day
+                    dummy_var = solver.IntVar(0, 0, f'dummy_{t["ID"]}_{d}_{p}')
+                    period_sum = solver.Sum([
+                        x.get((t['ID'], c['ID'], r['ID'], (d, p)), dummy_var)
+                        for c in classes
+                        for r in rooms
+                    ])
+                    teaching_periods.append(period_sum)
 
                 for p in range(1, 7):
+                    # gap is a binary variable
                     gap = solver.IntVar(0, 1, f'gap_{t["ID"]}_{d}_{p}')
+
+                    # Necessary condition: gap can only exist if periods either side are occupied
                     solver.Add(gap >= teaching_periods[p - 1] + teaching_periods[p + 1] - 1)
+
+                    # Necessary condition: gap can only exist if the current period is empty
                     solver.Add(gap <= 1 - teaching_periods[p])
+
+                    # Necessary condition: gap can only exist if the periods either side are occupied
                     solver.Add(gap <= teaching_periods[p - 1])
                     solver.Add(gap <= teaching_periods[p + 1])
+
                     gap_vars.append(gap)
 
             log_memory_usage()

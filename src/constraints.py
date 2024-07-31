@@ -148,6 +148,28 @@ def required_periods_per_class(
     return constraints
 
 
+def one_class_per_room_per_period(
+    solver: pywraplp.Solver,
+    x: Dict[Tuple[str, str, str, Tuple[int, int]], pywraplp.Variable],
+    teachers: List[Dict[str, Any]],
+    classes: List[Dict[str, Any]],
+    rooms: List[Dict[str, Any]],
+    time_slots: List[Tuple[int, int]]
+) -> List[pywraplp.Constraint]:
+    """
+    Ensure that each room is assigned to at most one class per time slot.
+    """
+    constraints = []
+    for r in rooms:
+        for ts in time_slots:
+            constraint = solver.Constraint(0, 1)
+            for t in teachers:
+                for c in classes:
+                    constraint.SetCoefficient(x.get((t["ID"], c["ID"], r["ID"], ts), 0), 1)
+            constraints.append(constraint)
+    return constraints
+
+
 def apply_all_constraints(
     solver: pywraplp.Solver,
     x: Dict[Tuple[str, str, str, Tuple[int, int]], pywraplp.Variable],
@@ -158,24 +180,13 @@ def apply_all_constraints(
 ) -> List[pywraplp.Constraint]:
     """
     Apply all defined constraints to the solver.
-
-    Args:
-        solver: The OR-Tools solver instance
-        x: Decision variables representing the schedule
-        teachers: List of teacher dictionaries
-        classes: List of class dictionaries
-        rooms: List of room dictionaries
-        time_slots: List of time slot tuples
-
-    Returns:
-        List of all applied constraints
     """
     all_constraints = []
     all_constraints.extend(room_capacity_constraint(solver, x, classes, rooms, time_slots, teachers))
     all_constraints.extend(teacher_availability_constraint(solver, x, teachers, classes, rooms, time_slots))
     all_constraints.extend(one_class_per_teacher_per_period(solver, x, teachers, classes, rooms, time_slots))
     all_constraints.extend(required_periods_per_class(solver, x, classes, teachers, rooms, time_slots))
-    # Add calls to any additional constraint functions here
+    all_constraints.extend(one_class_per_room_per_period(solver, x, teachers, classes, rooms, time_slots))
     return all_constraints
 
 

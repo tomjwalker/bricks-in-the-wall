@@ -5,7 +5,6 @@ This module contains the main function to run the school scheduling process end-
 (without user input).
 """
 
-
 import sys
 import os
 import time
@@ -19,10 +18,16 @@ from src import utils
 from src.log_config import logger
 from src.scheduler_utils import run_scheduler
 
+import psutil
+
+def log_memory_usage():
+    process = psutil.Process(os.getpid())
+    mem_info = process.memory_info()
+    logger.info(f"Memory usage: {mem_info.rss / 1024 / 1024:.2f} MB")
 
 def main():
     # Configure logging
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
     # Set up data files
     data_files = {
@@ -43,8 +48,10 @@ def main():
 
         logger.info("Running scheduler")
         start_time = time.time()
+        log_memory_usage()
         schedule = run_scheduler(scheduler, weights, timeout=300)  # 5 minutes timeout
         end_time = time.time()
+        log_memory_usage()
 
         if schedule is not None:
             logger.info(f"Schedule generated successfully in {end_time - start_time:.2f} seconds!")
