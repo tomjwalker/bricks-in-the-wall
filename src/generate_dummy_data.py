@@ -34,7 +34,7 @@ class RoomType(Enum):
 # Dataset size configuration
 SMALL_DATASET = {
     "teachers": 10,
-    "classes": 20,
+    "classes": 15,
     "rooms": 5
 }
 

@@ -56,7 +56,6 @@ def run_with_timeout(func, args, timeout):
 def main():
     st.title("School Scheduling System")
 
-    # File upload
     st.header("Data Input")
     teachers_file = st.file_uploader("Upload Teachers CSV", type="csv")
     classes_file = st.file_uploader("Upload Classes CSV", type="csv")
@@ -111,13 +110,43 @@ def main():
 
                             # Visualize teacher workload
                             st.header("Teacher Workload")
-                            utils.visualize_teacher_workload(schedule)
-                            st.image("output/teacher_workload.png")
+                            fig = utils.visualize_teacher_workload(schedule)
+                            st.pyplot(fig)
 
                             # Display statistics
                             st.header("Schedule Statistics")
                             stats = utils.calculate_schedule_statistics(schedule)
                             st.json(stats)
+
+                            # Teacher Utilization
+                            st.header("Teacher Utilization")
+                            teacher_utilization = utils.calculate_teacher_utilization(schedule, scheduler.data["teachers"], scheduler.data["time_slots"])
+                            fig = utils.plot_teacher_utilization(teacher_utilization)
+                            st.pyplot(fig)
+
+                            # Class Distribution
+                            st.header("Class Distribution")
+                            class_distribution = utils.analyze_class_distribution(schedule, scheduler.data["teachers"])
+                            fig = utils.plot_class_distribution(class_distribution)
+                            st.pyplot(fig)
+
+                            # Teacher Gaps
+                            st.header("Teacher Gaps")
+                            teacher_gaps = utils.analyze_gaps(schedule, scheduler.data["teachers"])
+                            fig = utils.plot_teacher_gaps(teacher_gaps)
+                            st.pyplot(fig)
+
+                            # Room Utilization
+                            st.header("Room Utilization")
+                            room_utilization = utils.calculate_room_utilization(schedule, scheduler.data["rooms"], scheduler.data["time_slots"])
+                            fig = utils.plot_room_utilization(room_utilization)
+                            st.pyplot(fig)
+
+                            # Subject Balance
+                            st.header("Subject Balance")
+                            subject_balance = utils.analyze_subject_balance(schedule, scheduler.data["classes"])
+                            fig = utils.plot_subject_balance(subject_balance)
+                            st.pyplot(fig)
 
                             # Export option
                             if st.button("Export Schedule to CSV"):
@@ -135,7 +164,6 @@ def main():
             logger.error(traceback.format_exc())
             st.error(f"An error occurred: {str(e)}")
             st.code(traceback.format_exc())
-
 
 if __name__ == "__main__":
     main()
