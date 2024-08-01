@@ -13,13 +13,13 @@ from src.generate_dummy_data import generate_teachers, generate_classes, generat
 def show():
     st.title("Data Input")
 
-    tab1, tab2 = st.tabs(["Upload Data", "Generate Synthetic Data"])
+    tab1, tab2 = st.tabs(["Generate Synthetic Data", "Upload Data"])
 
     with tab1:
-        show_upload_data()
+        show_generate_data()
 
     with tab2:
-        show_generate_data()
+        show_upload_data()
 
     # Display status of scheduler initialization
     if 'scheduler_initialized' in st.session_state and st.session_state.scheduler_initialized:
@@ -58,7 +58,7 @@ def show_generate_data():
 
     num_teachers = st.slider("Number of Teachers", 5, 100, 10)
     num_classes = st.slider("Number of Classes", 10, 200, 15)
-    num_rooms = st.slider("Number of Rooms", 5, 50, 5)
+    num_rooms = st.slider("Number of Rooms", 10, 50, 5)
 
     if st.button("Generate Data"):
         try:
