@@ -58,7 +58,7 @@ def show_generate_data():
 
     num_teachers = st.slider("Number of Teachers", 5, 100, 10)
     num_classes = st.slider("Number of Classes", 10, 200, 15)
-    num_rooms = st.slider("Number of Rooms", 10, 50, 5)
+    num_rooms = st.slider("Number of Rooms", 5, 50, 10)
 
     if st.button("Generate Data"):
         try:
