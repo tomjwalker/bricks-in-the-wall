@@ -26,23 +26,36 @@ from utils import log_memory_usage
 
 
 class Scheduler:
-    """
-    Main class for setting up and solving the school scheduling problem.
-    """
-
-    def __init__(self, data_files: Dict[str, Any]):
+    def __init__(self, data_input: Dict[str, Any]):
         """
-        Initialize the Scheduler with data file paths or file-like objects.
+        Initialize the Scheduler with either file paths or in-memory data.
 
         Args:
-            data_files (Dict[str, Any]): Dictionary containing file paths or file-like objects for each data type
+            data_input (Dict[str, Any]): Dictionary containing either file paths or in-memory data for each data type
         """
         logger.info("Initializing Scheduler")
         self.solver = pywraplp.Solver.CreateSolver("CBC")
-        self.data = data_loader.load_all_data(**data_files)
+        self.data = self._load_data(data_input)
         self.x: Dict[Tuple[str, str, str, Tuple[int, int]], pywraplp.Variable] = {}  # Decision variables
         self.solution = None
         logger.info("Scheduler initialized")
+
+    def _load_data(self, data_input: Dict[str, Any]) -> Dict[str, List[Dict[str, Any]]]:
+        """
+        Load data from either file paths or in-memory data.
+
+        Args:
+            data_input (Dict[str, Any]): Dictionary containing either file paths or in-memory data
+
+        Returns:
+            Dict[str, List[Dict[str, Any]]]: Loaded data
+        """
+        if all(isinstance(v, (str, os.PathLike)) for v in data_input.values()):
+            # If all values are file paths, use load_all_data
+            return data_loader.load_all_data(**data_input)
+        else:
+            # If in-memory data, assume it's already in the correct format
+            return data_input
 
     def create_variables(self):
         """

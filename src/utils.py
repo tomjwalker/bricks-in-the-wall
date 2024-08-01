@@ -145,7 +145,9 @@ def log_memory_usage():
     mem_info = process.memory_info()
     logger.info(f"Memory usage: {mem_info.rss / 1024 / 1024:.2f} MB")
 
-def calculate_teacher_utilization(schedule: Dict[int, List[Dict[str, Any]]], teachers: List[Dict[str, Any]], time_slots: List[Tuple[int, int]]) -> Dict[str, float]:
+
+def calculate_teacher_utilization(schedule: Dict[int, List[Dict[str, Any]]], teachers: List[Dict[str, Any]],
+                                  time_slots: List[Tuple[int, int]]) -> Dict[str, float]:
     """
     Calculate the percentage of available periods each teacher is scheduled to teach.
 
@@ -159,9 +161,30 @@ def calculate_teacher_utilization(schedule: Dict[int, List[Dict[str, Any]]], tea
     """
     utilization = {}
     for teacher in teachers:
-        scheduled_periods = sum(1 for day in schedule for class_ in schedule[day] if class_['teacher'] == teacher['Name'])
-        total_available_periods = sum(sum(teacher['Availability'][d]) for d in range(len(teacher['Availability'])))
-        utilization[teacher['Name']] = (scheduled_periods / total_available_periods) * 100 if total_available_periods else 0
+        scheduled_periods = sum(
+            1 for day in schedule for class_ in schedule[day] if class_['teacher'] == teacher['Name'])
+
+        # Calculate total available periods
+        total_available_periods = 0
+        availability = teacher.get('Availability', '')
+        if isinstance(availability, str):
+            # If availability is a string (e.g., '1,1,0,1;1,0,1,1'), parse it
+            days = availability.split(';')
+            for day in days:
+                total_available_periods += sum(int(period) for period in day.split(','))
+        elif isinstance(availability, list):
+            # If availability is a list of lists
+            for day in availability:
+                if isinstance(day, list):
+                    total_available_periods += sum(day)
+                elif isinstance(day, str):
+                    total_available_periods += sum(int(period) for period in day.split(','))
+
+        if total_available_periods == 0:
+            utilization[teacher['Name']] = 0
+        else:
+            utilization[teacher['Name']] = (scheduled_periods / total_available_periods) * 100
+
     return utilization
 
 def plot_teacher_utilization(utilization: Dict[str, float]) -> plt.Figure:
